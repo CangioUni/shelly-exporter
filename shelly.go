@@ -47,6 +47,8 @@ type gen1Status struct {
 		Power   float64 `json:"power"`
 		Voltage float64 `json:"voltage"`
 		Current float64 `json:"current"`
+		// Total is the cumulative energy counter in Watt-minutes (not Wh).
+		Total float64 `json:"total"`
 	} `json:"meters"`
 	EMeters []struct {
 		Power   float64 `json:"power"`
@@ -134,6 +136,22 @@ type gen2PM struct {
 	APower  float64 `json:"apower"`
 	Voltage float64 `json:"voltage"`
 	Current float64 `json:"current"`
+	PF      float64 `json:"pf"`
+	AEnergy struct {
+		Total float64 `json:"total"`
+	} `json:"aenergy"`
+}
+
+// gen2EM1 represents a single-phase energy-meter channel (em1:N) found on
+// Shelly Pro EM and Pro 3EM Gen2 devices.
+type gen2EM1 struct {
+	APower  float64 `json:"act_power"`
+	Voltage float64 `json:"voltage"`
+	Current float64 `json:"current"`
+	PF      float64 `json:"pf"`
+	AEnergy struct {
+		Total float64 `json:"total"`
+	} `json:"aenergy"`
 }
 
 // ─── ShellyClient ─────────────────────────────────────────────────────────────
@@ -217,6 +235,9 @@ func (c *ShellyClient) scrapeGen1(ctx context.Context) ([]Metric, error) {
 		}
 		if c.device.wantsMetric("current") && m.Current != 0 {
 			metrics = append(metrics, Metric{Key: "current", Label: lbl, Value: m.Current})
+		}
+		if c.device.wantsMetric("energy") && m.Total != 0 {
+			metrics = append(metrics, Metric{Key: "energy", Label: lbl, Value: m.Total})
 		}
 	}
 
@@ -357,6 +378,35 @@ func (c *ShellyClient) scrapeGen2(ctx context.Context) ([]Metric, error) {
 			}
 			if c.device.wantsMetric("current") {
 				metrics = append(metrics, Metric{Key: "current", Label: lbl, Value: pm.Current})
+			}
+			if c.device.wantsMetric("pf") {
+				metrics = append(metrics, Metric{Key: "pf", Label: lbl, Value: pm.PF})
+			}
+			if c.device.wantsMetric("energy") {
+				metrics = append(metrics, Metric{Key: "energy", Label: lbl, Value: pm.AEnergy.Total})
+			}
+
+		case strings.HasPrefix(key, "em1:"):
+			var em gen2EM1
+			if err := json.Unmarshal(val, &em); err != nil {
+				c.log.Warn("cannot parse em1 component", "key", key, "err", err)
+				continue
+			}
+			lbl := strings.Replace(key, ":", "", 1)
+			if c.device.wantsMetric("power") {
+				metrics = append(metrics, Metric{Key: "power", Label: lbl, Value: em.APower})
+			}
+			if c.device.wantsMetric("voltage") {
+				metrics = append(metrics, Metric{Key: "voltage", Label: lbl, Value: em.Voltage})
+			}
+			if c.device.wantsMetric("current") {
+				metrics = append(metrics, Metric{Key: "current", Label: lbl, Value: em.Current})
+			}
+			if c.device.wantsMetric("pf") {
+				metrics = append(metrics, Metric{Key: "pf", Label: lbl, Value: em.PF})
+			}
+			if c.device.wantsMetric("energy") {
+				metrics = append(metrics, Metric{Key: "energy", Label: lbl, Value: em.AEnergy.Total})
 			}
 
 		case strings.HasPrefix(key, "cover:"):
