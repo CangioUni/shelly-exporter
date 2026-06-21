@@ -105,7 +105,7 @@ The exporter reads a single JSON file. The path is set via the `CONFIG_PATH` env
 | `voltage` | V | RMS voltage |
 | `current` | A | RMS current |
 | `pf` | — | Power factor (0–1) |
-| `energy` | Wh | Cumulative energy counter |
+| `energy` | Wh¹ | Cumulative energy counter |
 | `relay_state` | 0/1 | Relay / switch output state |
 | `input_state` | 0/1 | Digital input state |
 | `temperature` | °C | Device or sensor temperature |
@@ -116,6 +116,8 @@ The exporter reads a single JSON file. The path is set via the `CONFIG_PATH` env
 
 Multi-channel devices (e.g. Shelly 2PM) append a channel suffix to the field name: `power_ch0`, `power_ch1`.  
 Energy-meter phases are suffixed `phase0`, `phase1`, `phase2`.
+
+> ¹ Gen1 standard meters (`meters[]`) report energy in **Watt-minutes**; Gen1 energy meters (`emeters[]`) and all Gen2 devices report in **Wh**.
 
 ---
 
