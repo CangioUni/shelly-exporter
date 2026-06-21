@@ -1,0 +1,38 @@
+{
+  "influxdb": {
+    "url": "http://influxdb:8086",
+    "token": "my-super-secret-token",
+    "org": "myorg",
+    "bucket": "shelly",
+    "measurement": "shelly"
+  },
+  "log_level": "info",
+  "devices": [
+    {
+      "name": "living_room_plug",
+      "address": "192.168.1.101",
+      "interval": 30,
+      "metrics": ["power", "voltage", "current", "relay_state", "temperature"]
+    },
+    {
+      "name": "kitchen_dimmer",
+      "address": "192.168.1.102",
+      "interval": 15,
+      "metrics": ["relay_state", "brightness"]
+    },
+    {
+      "name": "energy_meter",
+      "address": "192.168.1.103",
+      "interval": 10,
+      "metrics": ["all"]
+    },
+    {
+      "name": "protected_device",
+      "address": "192.168.1.104",
+      "interval": 60,
+      "username": "admin",
+      "password": "secret",
+      "metrics": ["power", "relay_state"]
+    }
+  ]
+}

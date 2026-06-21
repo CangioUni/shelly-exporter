@@ -1,0 +1,11 @@
+# Build output
+shelly-exporter
+*.exe
+
+# Config files with real credentials (use config.example.json as a template)
+config.json
+
+# Editor
+.idea/
+.vscode/
+*.swp
