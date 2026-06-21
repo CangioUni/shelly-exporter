@@ -3,8 +3,7 @@
     "url": "http://influxdb:8086",
     "token": "my-super-secret-token",
     "org": "myorg",
-    "bucket": "shelly",
-    "measurement": "shelly"
+    "bucket": "shelly"
   },
   "log_level": "info",
   "devices": [
