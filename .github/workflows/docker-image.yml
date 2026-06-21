@@ -15,4 +15,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag cangio/shelly-exporter:latest
+      run: docker login --username CangioUni --password ${{ secrets.GH_PAT }} ghcr.io
+          docker build . --tag ghcr.io/CangioUni/shelly-exporter:latest
+          docker push ghcr.io/CangioUni/shelly-exporter:latest
