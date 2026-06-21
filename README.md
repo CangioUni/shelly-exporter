@@ -84,7 +84,7 @@ The exporter reads a single JSON file. The path is set via the `CONFIG_PATH` env
 | `token` | string | ✅ | InfluxDB API token. For v1 compat use `username:password` |
 | `org` | string | | Organisation name. Leave empty for InfluxDB 1.8 compat |
 | `bucket` | string | ✅ | Bucket (v2) or database (v1 compat) to write into |
-| `measurement` | string | | InfluxDB measurement name. Default: `shelly` |
+| `measurement` | string | | Legacy setting (ignored). Measurements are device names. |
 
 ### `devices` array item
 
@@ -129,8 +129,7 @@ Energy-meter phases are suffixed `phase0`, `phase1`, `phase2`.
     "url": "http://influxdb:8086",
     "token": "my-super-secret-token",
     "org": "myorg",
-    "bucket": "shelly",
-    "measurement": "shelly"
+    "bucket": "shelly"
   },
   "log_level": "info",
   "devices": [
@@ -196,9 +195,7 @@ Edit `config.json` at any time. The exporter detects the change via filesystem e
 ## InfluxDB data model
 
 ```
-measurement: shelly
-tags:
-  device = <name from config>
+measurement: <name from config>
 fields:
   power_ch0          = 12.5
   voltage_ch0        = 230.1
@@ -213,7 +210,7 @@ Example Flux query for a device's power over the last hour:
 ```flux
 from(bucket: "shelly")
   |> range(start: -1h)
-  |> filter(fn: (r) => r._measurement == "shelly" and r.device == "living_room_plug")
+  |> filter(fn: (r) => r._measurement == "living_room_plug")
   |> filter(fn: (r) => r._field == "power_ch0")
 ```
 

@@ -24,7 +24,7 @@ type InfluxDBConfig struct {
 	Org string `json:"org"`
 	// Bucket is the InfluxDB bucket / v1 database name.
 	Bucket string `json:"bucket"`
-	// Measurement is the InfluxDB measurement name. Default: "shelly".
+	// Measurement is a legacy setting kept for backward compatibility and ignored.
 	Measurement string `json:"measurement"`
 }
 
@@ -43,14 +43,6 @@ type DeviceConfig struct {
 	// Username / Password for devices with HTTP auth enabled (optional).
 	Username string `json:"username"`
 	Password string `json:"password"`
-}
-
-// measurement returns the configured measurement name, falling back to "shelly".
-func (c *InfluxDBConfig) measurement() string {
-	if c.Measurement != "" {
-		return c.Measurement
-	}
-	return "shelly"
 }
 
 // interval returns the device polling interval in seconds, falling back to 30.

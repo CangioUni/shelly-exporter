@@ -49,14 +49,14 @@ func (iw *InfluxWriter) drainErrors() {
 }
 
 // Write sends a batch of metrics for a device as a single InfluxDB point.
-// Tags: device=<device name>
+// Measurement: <device name>
 // Fields: one field per Metric using Metric.FieldName() as the field key.
 func (iw *InfluxWriter) Write(deviceName string, metrics []Metric) error {
 	if len(metrics) == 0 {
 		return nil
 	}
 
-	measurement := iw.cfg.measurement()
+	measurement := deviceName
 	fields := make(map[string]interface{}, len(metrics))
 	for _, m := range metrics {
 		fields[m.FieldName()] = m.Value
@@ -64,7 +64,7 @@ func (iw *InfluxWriter) Write(deviceName string, metrics []Metric) error {
 
 	p := write.NewPoint(
 		measurement,
-		map[string]string{"device": deviceName},
+		nil,
 		fields,
 		time.Now(),
 	)
