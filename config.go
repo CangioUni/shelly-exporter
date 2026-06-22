@@ -3,7 +3,30 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
+	"regexp"
+	"strings"
+)
+
+var (
+	validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	allowedMetrics   = map[string]bool{
+		"all":             true,
+		"power":           true,
+		"voltage":         true,
+		"current":         true,
+		"pf":              true,
+		"energy":          true,
+		"relay_state":     true,
+		"input_state":     true,
+		"temperature":     true,
+		"humidity":        true,
+		"brightness":      true,
+		"battery":         true,
+		"roller_position": true,
+	}
 )
 
 // Config is the top-level configuration structure loaded from the JSON file.
@@ -87,16 +110,62 @@ func (c *Config) validate() error {
 	if c.InfluxDB.URL == "" {
 		return fmt.Errorf("influxdb.url is required")
 	}
+	if _, err := url.ParseRequestURI(c.InfluxDB.URL); err != nil {
+		return fmt.Errorf("influxdb.url is invalid: %w", err)
+	}
+
 	if c.InfluxDB.Bucket == "" {
 		return fmt.Errorf("influxdb.bucket is required")
 	}
+
 	for i, d := range c.Devices {
-		if d.Address == "" {
-			return fmt.Errorf("devices[%d].address is required", i)
-		}
 		if d.Name == "" {
 			return fmt.Errorf("devices[%d].name is required", i)
 		}
+		if !validNamePattern.MatchString(d.Name) {
+			return fmt.Errorf("devices[%d].name contains invalid characters. Only alphanumeric characters, dashes, and underscores are allowed", i)
+		}
+
+		if d.Address == "" {
+			return fmt.Errorf("devices[%d].address is required", i)
+		}
+		if !isValidHostnameOrIP(d.Address) {
+			return fmt.Errorf("devices[%d].address %q is not a valid IP address or hostname", i, d.Address)
+		}
+
+		interval := d.interval()
+		if interval < 1 || interval > 90000 {
+			return fmt.Errorf("devices[%d].interval must be between 1 and 90000", i)
+		}
+
+		for _, m := range d.Metrics {
+			if !allowedMetrics[m] {
+				return fmt.Errorf("devices[%d].metrics contains an invalid metric: %s", i, m)
+			}
+		}
 	}
 	return nil
+}
+
+func isValidHostnameOrIP(host string) bool {
+	host = strings.TrimSpace(host)
+	if net.ParseIP(host) != nil {
+		return true
+	}
+	// Basic hostname validation (allowing multiple segments)
+	if len(host) > 253 {
+		return false
+	}
+	labels := strings.Split(host, ".")
+	for _, label := range labels {
+		if len(label) == 0 || len(label) > 63 {
+			return false
+		}
+		// A label should start and end with an alphanumeric character
+		// and can contain hyphens.
+		if matched, _ := regexp.MatchString(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$`, label); !matched {
+			return false
+		}
+	}
+	return true
 }

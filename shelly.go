@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var validComponentLabel = regexp.MustCompile(`^[a-zA-Z0-9]+$`)
 
 // Metric is a single named numeric value scraped from a Shelly device.
 type Metric struct {
@@ -187,7 +191,7 @@ func (c *ShellyClient) Scrape(ctx context.Context) ([]Metric, error) {
 
 func (c *ShellyClient) detectGen(ctx context.Context) (int, error) {
 	var info shellyInfo
-	if err := c.getJSON(ctx, "http://"+c.device.Address+"/shelly", &info); err != nil {
+	if err := c.getJSON(ctx, "/shelly", &info); err != nil {
 		return 0, err
 	}
 	if info.Gen >= 2 {
@@ -200,7 +204,7 @@ func (c *ShellyClient) detectGen(ctx context.Context) (int, error) {
 
 func (c *ShellyClient) scrapeGen1(ctx context.Context) ([]Metric, error) {
 	var status gen1Status
-	if err := c.getJSON(ctx, "http://"+c.device.Address+"/status", &status); err != nil {
+	if err := c.getJSON(ctx, "/status", &status); err != nil {
 		return nil, err
 	}
 
@@ -323,13 +327,22 @@ func (c *ShellyClient) scrapeGen1(ctx context.Context) ([]Metric, error) {
 
 func (c *ShellyClient) scrapeGen2(ctx context.Context) ([]Metric, error) {
 	var raw gen2Status
-	if err := c.getJSON(ctx, "http://"+c.device.Address+"/rpc/Shelly.GetStatus", &raw); err != nil {
+	if err := c.getJSON(ctx, "/rpc/Shelly.GetStatus", &raw); err != nil {
 		return nil, err
 	}
 
 	var metrics []Metric
 
 	for key, val := range raw {
+		parts := strings.SplitN(key, ":", 2)
+		if len(parts) == 2 {
+			// Validate that the label part is alphanumeric to prevent injection from malicious payloads
+			if !validComponentLabel.MatchString(parts[1]) {
+				c.log.Warn("skipping component with invalid label", "key", key)
+				continue
+			}
+		}
+
 		switch {
 		case strings.HasPrefix(key, "switch:"):
 			var sw gen2Switch
@@ -493,8 +506,15 @@ func (c *ShellyClient) scrapeGen2(ctx context.Context) ([]Metric, error) {
 
 // ─── HTTP helpers ─────────────────────────────────────────────────────────────
 
-func (c *ShellyClient) getJSON(ctx context.Context, url string, dst any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func (c *ShellyClient) getJSON(ctx context.Context, path string, dst any) error {
+	u := &url.URL{
+		Scheme: "http",
+		Host:   c.device.Address,
+		Path:   path,
+	}
+	reqURL := u.String()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("building request: %w", err)
 	}
@@ -504,20 +524,22 @@ func (c *ShellyClient) getJSON(ctx context.Context, url string, dst any) error {
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("HTTP GET %s: %w", url, err)
+		return fmt.Errorf("HTTP GET %s: %w", reqURL, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("HTTP GET %s: unexpected status %d", url, resp.StatusCode)
+		return fmt.Errorf("HTTP GET %s: unexpected status %d", reqURL, resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// Read response body with a 1MB limit to prevent OOM attacks from fake devices
+	limitReader := io.LimitReader(resp.Body, 1024*1024)
+	body, err := io.ReadAll(limitReader)
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}
 	if err := json.Unmarshal(body, dst); err != nil {
-		return fmt.Errorf("parsing JSON from %s: %w", url, err)
+		return fmt.Errorf("parsing JSON from %s: %w", reqURL, err)
 	}
 	return nil
 }
