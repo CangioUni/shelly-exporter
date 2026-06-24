@@ -1,7 +1,19 @@
+![Flow illustration](assets/data-flow-illustration.png "Shelly Exporter")
+
 # shelly-exporter
 
 A lightweight Go daemon that polls [Shelly](https://www.shelly.com) devices over HTTP and writes selected metrics to [InfluxDB 2.x](https://www.influxdata.com/products/influxdb/).  
 Runs as a single static binary or a Docker container. Configuration lives in a JSON file that is **hot-reloaded** whenever it changes on disk.
+
+## Goal
+I could not find a suitable, local exporter for Shelly devices that directly stores metrics into InfluxDB for Grafana visualization. Existing solutions often rely on rigid environment-based configurations and lack the flexibility to select specific device metrics—frequently limiting data collection to real-time power consumption only.
+
+This project provides a highly flexible, easy-to-use alternative that allows full control over configuration and metric selection.
+
+## License & Responsibility
+
+This is a personal, vibe-coded project tailored for local home automation environments. It is provided "as-is" without any explicit warranty or guarantee of stability, security, or ongoing maintenance. 
+Feature requests and bug reports are welcome via the repository's issues page.
 
 ---
 
