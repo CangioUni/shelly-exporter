@@ -26,4 +26,4 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60 # Specify the desired golangci-lint version
+          version: latest # Keep linter compatible with the Go version from go.mod
