@@ -2,6 +2,8 @@
 
 # shelly-exporter
 
+[![golangci-lint](https://github.com/CangioUni/shelly-exporter/actions/workflows/lint.yml/badge.svg)](https://github.com/CangioUni/shelly-exporter/actions/workflows/lint.yml)
+
 A lightweight Go daemon that polls [Shelly](https://www.shelly.com) devices over HTTP and writes selected metrics to [InfluxDB 2.x](https://www.influxdata.com/products/influxdb/).  
 Runs as a single static binary or a Docker container. Configuration lives in a JSON file that is **hot-reloaded** whenever it changes on disk.
 
