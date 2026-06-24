@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	validNamePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
-	allowedMetrics   = map[string]bool{
+	validNamePattern      = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	hostnameLabelPattern = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$`)
+	allowedMetrics        = map[string]bool{
 		"all":             true,
 		"power":           true,
 		"voltage":         true,
@@ -163,7 +164,7 @@ func isValidHostnameOrIP(host string) bool {
 		}
 		// A label should start and end with an alphanumeric character
 		// and can contain hyphens.
-		if matched, _ := regexp.MatchString(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?$`, label); !matched {
+		if !hostnameLabelPattern.MatchString(label) {
 			return false
 		}
 	}
